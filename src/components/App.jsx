@@ -14,26 +14,26 @@ export const App = () => {
   const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
+    const fetchGalleryItems = (search, page) => {
+      setShowLoader(true);
+
+      FetchImage(search, page)
+        .then(({ data }) => {
+          if (!data.hits.length) {
+            setIsEmpty(true);
+            setIsLoadMore(false);
+            return;
+          }
+          setGalleryImg(prev => [...prev, ...data.hits]);
+          setIsLoadMore(page < Math.ceil(data.total / 12));
+        })
+        .finally(() => setShowLoader(false));
+    };
+
     if (search !== '') {
       fetchGalleryItems(search, page);
     }
   }, [search, page]);
-
-  const fetchGalleryItems = (search, page) => {
-    setShowLoader(true);
-
-    FetchImage(search, page)
-      .then(({ data }) => {
-        if (!data.hits.length) {
-          setIsEmpty(true);
-          setIsLoadMore(false);
-          return;
-        }
-        setGalleryImg(prev => [...prev, ...data.hits]);
-        setIsLoadMore(page < Math.ceil(data.total / 12));
-      })
-      .finally(() => setShowLoader(false));
-  };
 
   const searchName = search => {
     setSearch('');
