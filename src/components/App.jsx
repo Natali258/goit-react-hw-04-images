@@ -1,76 +1,67 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from './Button/Button';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Loader } from './Loader/Loader';
 import { Searchbar } from './Searchbar/Searchbar';
 import { FetchImage } from 'services/api';
 
-export class App extends React.Component {
-  state = {
-    search: '',
-    page: 1,
-    galleryImg: [],
-    isLoadMore: false,
-    isEmpty: false,
-    showLoader: false,
-  };
+export const App = () => {
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [galleryImg, setGalleryImg] = useState([]);
+  const [isLoadMore, setIsLoadMore] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
 
-  componentDidUpdate(_, prevState) {
-    const { search, page } = this.state;
-    if (prevState.search !== search || prevState.page !== page) {
-      this.setState({ showLoader: true });
-      FetchImage(search, page)
-        .then(({ data }) => {
-          if (!data.hits.length) {
-            this.setState({
-              isEmpty: true,
-              isLoadMore: false,
-            });
-            return;
-          }
-          this.setState(prev => ({
-            galleryImg: [...prev.galleryImg, ...data.hits],
-            isLoadMore: page < Math.ceil(data.total / 12),
-          }));
-        })
-        .finally(this.setState({ showLoader: false }));
+  useEffect(() => {
+    if (search !== '') {
+      fetchGalleryItems(search, page);
     }
-  }
+  }, [search, page]);
 
-  searchName = search => {
-    this.setState({
-      search,
-      isEmpty: false,
-      galleryImg: [],
-      page: 1,
-      showLoader: true,
-    });
+  const fetchGalleryItems = (search, page) => {
+    setShowLoader(true);
+
+    FetchImage(search, page)
+      .then(({ data }) => {
+        if (!data.hits.length) {
+          setIsEmpty(true);
+          setIsLoadMore(false);
+          return;
+        }
+        setGalleryImg(prev => [...prev, ...data.hits]);
+        setIsLoadMore(page < Math.ceil(data.total / 12));
+      })
+      .finally(() => setShowLoader(false));
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const searchName = search => {
+    setSearch('');
+    setPage(1);
+    setGalleryImg([]);
+    setIsEmpty(false);
+    setShowLoader(true);
+
+    setSearch(search);
   };
 
-  render() {
-    const { galleryImg, isLoadMore, isEmpty, showLoader } = this.state;
-    const loadMore = this.handleLoadMore;
+  const handleLoadMore = () => {
+    setPage(prevState => prevState + 1);
+  };
 
-    return (
-      <div className="containerGallery">
-        <Searchbar search={this.searchName} />
-        <ImageGallery galleryImgs={galleryImg} />
-        {isLoadMore && <Button loadMore={loadMore} />}
-        {showLoader && <Loader />}
+  return (
+    <div>
+      <Searchbar search={searchName} />
+      <ImageGallery galleryImgs={galleryImg} />
+      {isLoadMore && <Button loadMore={handleLoadMore} />}
+      {showLoader && <Loader />}
 
-        {isEmpty && (
-          <p>
-            'Sorry, there are no images matching your search query. Please try
-            again.
-          </p>
-        )}
-      </div>
-    );
-  }
-}
+      {isEmpty && (
+        <p>
+          'Sorry, there are no images matching your search query. Please try
+          again.
+        </p>
+      )}
+    </div>
+  );
+};
